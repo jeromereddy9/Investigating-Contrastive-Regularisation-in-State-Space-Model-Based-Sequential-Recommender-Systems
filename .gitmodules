@@ -1,0 +1,6 @@
+[submodule "external/Mamba4Rec"]
+	path = external/Mamba4Rec
+	url = https://github.com/chengkai-liu/Mamba4Rec
+[submodule "external/libraries/SIGMA"]
+	path = external/libraries/SIGMA
+	url = https://github.com/Applied-Machine-Learning-Lab/SIMGA
