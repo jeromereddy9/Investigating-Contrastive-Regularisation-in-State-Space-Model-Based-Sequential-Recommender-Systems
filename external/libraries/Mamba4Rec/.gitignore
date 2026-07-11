@@ -1,9 +1,0 @@
-__pycache__/
-log/
-log_tensorboard/
-# dataset/
-amazon-*/
-saved/
-*.pth
-*.pyc
-.DS_Store
