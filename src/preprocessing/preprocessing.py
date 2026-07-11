@@ -1,9 +1,10 @@
 import os
 import pandas as pd
+from src.utils import path_builder
 
 # Global config
 K_CORE = 5
-OUTPUT_DIR = "src/datasets/preprocessed"
+OUTPUT_DIR = path_builder('src/datasets/preprocessed')
 
 
 # Utilities
@@ -208,10 +209,10 @@ if __name__ == "__main__":
     # subcategory in the Amazon Review Data release and will not
     # match published benchmark stats (~22,363 users / 12,101 items
     # after 5-core filtering).
-    BEAUTY_PATH      = "src/datasets/raw/Beauty.csv"
-    VIDEOGAMES_PATH  = "src/datasets/raw/Video_Games.csv"
-    ML1M_PATH        = "src/datasets/raw/ratings.dat"
-    LASTFM_PATH      = "src/datasets/raw/userid-timestamp-artid-artname-traid-traname.tsv"
+    BEAUTY_PATH      = path_builder('src/datasets/raw/All_Beauty.csv')
+    VIDEOGAMES_PATH  = path_builder('src/datasets/raw/Video_Games.csv')
+    ML1M_PATH        = path_builder('src/datasets/raw/ratings.dat')
+    LASTFM_PATH      = path_builder('src/datasets/raw/userid-timestamp-artid-artname-traid-traname.tsv')
 
     preprocess_amazon_beauty(BEAUTY_PATH)
     preprocess_amazon_videogames(VIDEOGAMES_PATH)
