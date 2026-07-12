@@ -100,22 +100,20 @@ def run_experiment(
     loss_type: str | None = None,
 ) -> dict:
     exp_id = make_exp_id(model_name, loss_type, dataset_name)
-    print(f"\n{'='*60}")
     print(f"  {exp_id}")
-    print(f"{'='*60}")
 
     row = {
-        'timestamp':        datetime.now().isoformat(),
-        'dataset':          dataset_name,
-        'model':            model_name,
-        'loss_type':        loss_type or 'default',
-        'exp_id':           exp_id,
+        'timestamp':  datetime.now().isoformat(),
+        'dataset':  dataset_name,
+        'model':  model_name,
+        'loss_type': loss_type or 'default',
+        'exp_id':  exp_id,
         'hit@5': None,  'hit@10': None,  'hit@20': None,
         'ndcg@5': None, 'ndcg@10': None, 'ndcg@20': None,
         'mrr@5': None,  'mrr@10': None,  'mrr@20': None,
         'best_valid_score': None,
-        'status':           'failed',
-        'error':            '',
+        'status': 'failed',
+        'error':  '',
     }
 
     try:
@@ -130,7 +128,7 @@ def run_experiment(
             config_file_list=[
                 DATASET_CONFIG,
                 TRAINING_CONFIG,
-                os.path.join(MODELS_CONFIG_DIR, f'{config_file}.yaml'),
+                path_builder(MODELS_CONFIG_DIR + f'/{config_file}.yaml'),
             ],
             config_dict=config_dict,
         )
@@ -153,33 +151,34 @@ def run_experiment(
         # Train
         trainer = Trainer(config, model)
         best_valid_score, best_valid_result = trainer.fit(
-            train_data, valid_data, saved=False, show_progress=True
+            train_data, valid_data, saved=True, show_progress=True
         )
 
         # Evaluate
-        test_result = trainer.evaluate(test_data, load_best_model=False, show_progress=False)
+        test_result = trainer.evaluate(test_data, load_best_model=True, show_progress=False)
 
         # Parse metrics
         row['best_valid_score'] = best_valid_score
-        row['hit@5']   = test_result.get('hit@5')
-        row['hit@10']  = test_result.get('hit@10')
-        row['hit@20']  = test_result.get('hit@20')
-        row['ndcg@5']  = test_result.get('ndcg@5')
+        row['hit@5'] = test_result.get('hit@5')
+        row['hit@10'] = test_result.get('hit@10')
+        row['hit@20'] = test_result.get('hit@20')
+        row['ndcg@5'] = test_result.get('ndcg@5')
         row['ndcg@10'] = test_result.get('ndcg@10')
         row['ndcg@20'] = test_result.get('ndcg@20')
-        row['mrr@5']   = test_result.get('mrr@5')
-        row['mrr@10']  = test_result.get('mrr@10')
-        row['mrr@20']  = test_result.get('mrr@20')
-        row['status']  = 'success'
+        row['mrr@5'] = test_result.get('mrr@5')
+        row['mrr@10'] = test_result.get('mrr@10')
+        row['mrr@20'] = test_result.get('mrr@20')
+        row['status'] = 'success'
 
         # Save model checkpoint
-        ckpt_path = os.path.join(CHECKPOINT_DIR, f'{exp_id}.pkl')
+        ckpt_path = path_builder(CHECKPOINT_DIR + f'/{exp_id}.pkl')
         with open(ckpt_path, 'wb') as f:
             pickle.dump({
-                'model_state_dict': model.state_dict(),
+                'model_state_dict': trainer.model.state_dict(),
                 'config':           dict(config),
                 'test_result':      test_result,
                 'best_valid_score': best_valid_score,
+                'best_valid_result': best_valid_result,
                 'exp_id':           exp_id,
             }, f)
         print(f"  Checkpoint saved → {ckpt_path}")
