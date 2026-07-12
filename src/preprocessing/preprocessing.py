@@ -105,8 +105,8 @@ def preprocess_amazon(input_path: str, dataset_name: str) -> None:
                          timestamp_col="timestamp")
 
 
-def preprocess_amazon_beauty(input_path: str) -> None:
-    preprocess_amazon(input_path, dataset_name="amazon_beauty")
+def preprocess_amazon_musical_instruments(input_path: str) -> None:
+    preprocess_amazon(input_path, dataset_name="amazon_musical_instruments")
 
 
 def preprocess_amazon_videogames(input_path: str) -> None:
@@ -209,12 +209,12 @@ if __name__ == "__main__":
     # subcategory in the Amazon Review Data release and will not
     # match published benchmark stats (~22,363 users / 12,101 items
     # after 5-core filtering).
-    BEAUTY_PATH      = path_builder('src/datasets/raw/All_Beauty.csv')
+    INSTRUMENTS_PATH = path_builder('src/datasets/raw/Musical_Instruments.csv')
     VIDEOGAMES_PATH  = path_builder('src/datasets/raw/Video_Games.csv')
     ML1M_PATH        = path_builder('src/datasets/raw/ratings.dat')
     LASTFM_PATH      = path_builder('src/datasets/raw/userid-timestamp-artid-artname-traid-traname.tsv')
 
-    preprocess_amazon_beauty(BEAUTY_PATH)
+    preprocess_amazon_musical_instruments(INSTRUMENTS_PATH)
     preprocess_amazon_videogames(VIDEOGAMES_PATH)
     preprocess_movielens(ML1M_PATH)
     preprocess_lastfm(LASTFM_PATH)
