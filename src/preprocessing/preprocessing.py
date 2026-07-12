@@ -71,7 +71,7 @@ def preprocess_amazon(input_path: str, dataset_name: str) -> None:
     Expected columns : item_id, user_id, rating, timestamp
 
     All interactions are treated as implicit positive feedback,
-    regardless of rating value -- this matches standard practice
+    regardless of rating value this matches standard practice
     in sequential rec papers (SASRec, S3-Rec, CL4SRec, DuoRec):
     the fact a user interacted with an item is the signal, not
     the rating magnitude. Filtering by rating threshold would
@@ -153,7 +153,7 @@ def preprocess_lastfm(input_path: str) -> None:
     """
     LastFM-1K TSV file.
     Format: userid  timestamp  artid  artname  traid  traname
-    Uses artist-level interactions (traid has ~11% nulls, and
+    Uses artist-level interactions (traid has approx. 11% nulls, and
     artist-level aggregation is what gets item counts in line
     with the published benchmark stats for this dataset).
     """
@@ -204,11 +204,6 @@ def preprocess_lastfm(input_path: str) -> None:
 
 if __name__ == "__main__":
 
-    # NOTE: verify this points at the "Beauty" category file, not
-    # "All_Beauty" -- All_Beauty is a much smaller, different
-    # subcategory in the Amazon Review Data release and will not
-    # match published benchmark stats (~22,363 users / 12,101 items
-    # after 5-core filtering).
     INSTRUMENTS_PATH = path_builder('src/datasets/raw/Musical_Instruments.csv')
     VIDEOGAMES_PATH  = path_builder('src/datasets/raw/Video_Games.csv')
     ML1M_PATH        = path_builder('src/datasets/raw/ratings.dat')
