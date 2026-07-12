@@ -9,7 +9,7 @@ import torch
 class SIGMA_CL(CL_Logic,SIGMA):
     def __init__(self, config, dataset):
         super().__init__(config, dataset)
-        self._init_cl(config)
+        self._init_CL(config)
         self._init_embedding()
 
     def calculate_loss(self, interaction):
