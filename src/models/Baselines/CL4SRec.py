@@ -212,9 +212,9 @@ class CL4SRec(SequentialRecommender):
             loss = self.loss_fct(logits, pos_items)
 
         # NCE
-        # aug_item_seq1, aug_len1, aug_item_seq2, aug_len2 = self.augment(item_seq, item_seq_len)
-        aug_item_seq1, aug_len1, aug_item_seq2, aug_len2 = \
-            interaction['aug1'], interaction['aug_len1'], interaction['aug2'], interaction['aug_len2']
+        aug_item_seq1, aug_len1, aug_item_seq2, aug_len2 = self.augment(item_seq, item_seq_len)
+        # aug_item_seq1, aug_len1, aug_item_seq2, aug_len2 = \
+        #     interaction['aug1'], interaction['aug_len1'], interaction['aug2'], interaction['aug_len2']
         seq_output1 = self.forward(aug_item_seq1, aug_len1)
         seq_output2 = self.forward(aug_item_seq2, aug_len2)
 
@@ -230,7 +230,7 @@ class CL4SRec(SequentialRecommender):
 
         nce_loss = self.nce_fct(nce_logits, nce_labels)
 
-        return loss + self.lmd * nce_loss, alignment, uniformity
+        return loss + self.lmd * nce_loss
 
     def decompose(self, z_i, z_j, origin_z, batch_size):
         """
