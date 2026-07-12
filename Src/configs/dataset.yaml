@@ -1,0 +1,8 @@
+# All four datasets use identical column structure from preprocessing
+
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+TIME_FIELD: timestamp
+
+load_col:
+  inter: [user_id, item_id, timestamp]

@@ -1,0 +1,8 @@
+# sigma.yaml
+hidden_size: 64
+num_layers: 2
+dropout_prob: 0.1
+d_state: 16
+d_conv: 4
+expand: 2
+loss_type: CE

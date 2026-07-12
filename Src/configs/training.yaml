@@ -1,0 +1,30 @@
+# Training
+epochs: 200
+train_batch_size: 256
+eval_batch_size: 256
+learning_rate: 0.001
+stopping_step: 20          # early stopping patience
+clip_grad_norm: 5.0
+weight_decay: 0.0
+
+# Evaluation
+eval_args:
+  split:
+    LS: valid_and_test     # leave-one-out splitting
+  order: TO                # time ordered
+  mode: full               # full ranking
+valid_metric: NDCG@10
+
+metrics: [Hit, NDCG, MRR]
+topk: [5, 10, 20]
+
+# Sequential recommendation
+MAX_ITEM_LIST_LENGTH: 50
+
+# Reproducibility
+seed: 42
+reproducibility: True
+
+# Logging
+log_wandb: False
+show_progress: True
