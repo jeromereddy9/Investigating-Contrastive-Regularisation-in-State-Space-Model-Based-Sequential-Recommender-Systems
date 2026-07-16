@@ -105,8 +105,8 @@ def preprocess_amazon(input_path: str, dataset_name: str) -> None:
                          timestamp_col="timestamp")
 
 
-def preprocess_amazon_musical_instruments(input_path: str) -> None:
-    preprocess_amazon(input_path, dataset_name="amazon_musical_instruments")
+def preprocess_amazon_Toys_and_Games(input_path: str) -> None:
+    preprocess_amazon(input_path, dataset_name="amazon_toys_and_games")
 
 
 def preprocess_amazon_videogames(input_path: str) -> None:
@@ -204,12 +204,12 @@ def preprocess_lastfm(input_path: str) -> None:
 
 if __name__ == "__main__":
 
-    INSTRUMENTS_PATH = path_builder('src/datasets/raw/Musical_Instruments.csv')
+    TOYSANDGAMES_PATH = path_builder('src/datasets/raw/Toys_and_Games.csv')
     VIDEOGAMES_PATH  = path_builder('src/datasets/raw/Video_Games.csv')
     ML1M_PATH        = path_builder('src/datasets/raw/ratings.dat')
     LASTFM_PATH      = path_builder('src/datasets/raw/userid-timestamp-artid-artname-traid-traname.tsv')
 
-    preprocess_amazon_musical_instruments(INSTRUMENTS_PATH)
+    preprocess_amazon_Toys_and_Games(TOYSANDGAMES_PATH)
     preprocess_amazon_videogames(VIDEOGAMES_PATH)
     preprocess_movielens(ML1M_PATH)
     preprocess_lastfm(LASTFM_PATH)
