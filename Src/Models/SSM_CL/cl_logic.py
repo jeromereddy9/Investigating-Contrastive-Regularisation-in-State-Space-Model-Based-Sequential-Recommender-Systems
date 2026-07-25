@@ -67,6 +67,32 @@ class CL_Logic:
         logits = torch.cat((positive_samples, negative_samples), dim=1)
         return logits, labels
 
+    def _decoupled_contrastive_loss(self, z_i, z_j, temp, batch_size, sim='dot'):
+        """Calculate DCL loss"""
+        N = 2 * batch_size
+        z = torch.cat((z_i, z_j), dim=0)
+
+        if sim == 'cos':
+            sim_matrix = F.cosine_similarity(z.unsqueeze(1), z.unsqueeze(0), dim=2) / temp
+        elif sim == 'dot':
+            sim_matrix = torch.mm(z, z.T) / temp
+        else:
+            raise NotImplementedError("Make sure 'sim' in ['cos', 'dot']!")
+
+        sim_i_j = torch.diag(sim_matrix, batch_size)
+        sim_j_i = torch.diag(sim_matrix, -batch_size)
+
+        positive_samples = torch.cat((sim_i_j, sim_j_i), dim=0).reshape(N, 1)
+        if batch_size != self.batch_size:
+            mask = self._mask_correlated_samples(batch_size)
+        else:
+            mask = self.mask_default
+        negative_samples = sim_matrix[mask].reshape(N, -1)
+
+        labels = torch.zeros(N).to(positive_samples.device).long()
+        logits = negative_samples
+        return logits, labels
+
     def _decompose(self, z_i, z_j, origin_z, batch_size):
         """Calculate alignment and uniformity metrics"""
         N = 2 * batch_size
