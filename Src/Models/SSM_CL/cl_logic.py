@@ -101,8 +101,6 @@ class CL_Logic:
         negative_samples = sim_matrix[mask].reshape(N, -1)  # shape (N, N-2)
 
         # DCL loss: -positive + log(sum(exp(negatives)))
-        # computed manually rather than via CrossEntropyLoss
-        # since positive is NOT included in the denominator
         loss = (-positive_samples + torch.logsumexp(negative_samples, dim=1)).mean()
 
         return loss
