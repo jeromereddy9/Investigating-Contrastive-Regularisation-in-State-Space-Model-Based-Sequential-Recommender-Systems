@@ -11,11 +11,13 @@ class CL_Logic:
         self.lmd = config.get('lmd', 0.1)  # CL loss weight
         self.tau = config.get('tau', 0.2)  # temperature
         self.sim = config.get('sim', 'dot')  # similarity type
+        self.cl_loss_type = config.get('cl_loss_type', 'info_nce') # CL loss type
 
         # CL loss function
-        self.nce_fct = torch.nn.CrossEntropyLoss()
+        self.cl_fct = torch.nn.CrossEntropyLoss()
         self.batch_size = config['train_batch_size']
         self.mask_default = self._mask_correlated_samples(batch_size=self.batch_size)
+
 
     def _init_embedding(self):
         current_size = self.item_embedding.num_embeddings
@@ -68,7 +70,11 @@ class CL_Logic:
         return logits, labels
 
     def _decoupled_contrastive_loss(self, z_i, z_j, temp, batch_size, sim='dot'):
-        """Calculate DCL loss"""
+        """
+        Calculate DCL loss.
+        Differs from InfoNCE by excluding the positive pair from the denominator,
+        giving a cleaner gradient signal.
+        """
         N = 2 * batch_size
         z = torch.cat((z_i, z_j), dim=0)
 
@@ -82,16 +88,24 @@ class CL_Logic:
         sim_i_j = torch.diag(sim_matrix, batch_size)
         sim_j_i = torch.diag(sim_matrix, -batch_size)
 
-        positive_samples = torch.cat((sim_i_j, sim_j_i), dim=0).reshape(N, 1)
+        # Positive similarities
+        positive_samples = torch.cat((sim_i_j, sim_j_i), dim=0)  # shape (N,)
+
+        # Negative mask same as InfoNCE, excludes diagonal and positive pairs
         if batch_size != self.batch_size:
             mask = self._mask_correlated_samples(batch_size)
         else:
             mask = self.mask_default
-        negative_samples = sim_matrix[mask].reshape(N, -1)
 
-        labels = torch.zeros(N).to(positive_samples.device).long()
-        logits = negative_samples
-        return logits, labels
+        # Negatives only in denominator is key difference from InfoNCE
+        negative_samples = sim_matrix[mask].reshape(N, -1)  # shape (N, N-2)
+
+        # DCL loss: -positive + log(sum(exp(negatives)))
+        # computed manually rather than via CrossEntropyLoss
+        # since positive is NOT included in the denominator
+        loss = (-positive_samples + torch.logsumexp(negative_samples, dim=1)).mean()
+
+        return loss
 
     def _decompose(self, z_i, z_j, origin_z, batch_size):
         """Calculate alignment and uniformity metrics"""
@@ -193,57 +207,6 @@ class CL_Logic:
         reordered_item_seq[reorder_begin:reorder_begin + num_reorder] = reordered_item_seq[shuffle_index]
         return torch.tensor(reordered_item_seq, dtype=torch.long, device=item_seq.device), item_seq_len
 
-
-    # ------------------- SimSiam (Negative-Free Alignment) -------------------
-
-    def _init_simsiam(self, config=None):
-        """
-        Lazily initialize the SimSiam predictor MLP.
-        Call this once (e.g. alongside _init_CL) before using _simsiam_loss.
-        """
-        pred_hidden = (config or {}).get('simsiam_pred_hidden', self.hidden_size // 2) \
-            if config is not None else self.hidden_size // 2
-
-        self.simsiam_predictor = nn.Sequential(
-            nn.Linear(self.hidden_size, pred_hidden),
-            nn.BatchNorm1d(pred_hidden),
-            nn.ReLU(inplace=True),
-            nn.Linear(pred_hidden, self.hidden_size)
-        )
-
-    def _simsiam_negative_cosine_sim(self, p, z):
-        """
-        D(p, z) = -cosine_similarity(p, z.detach())
-        Stop-gradient is applied to z so that only p is optimized against a
-        fixed target, which is what prevents representational collapse.
-        """
-        z = z.detach()
-        p = F.normalize(p, dim=-1)
-        z = F.normalize(z, dim=-1)
-        return -(p * z).sum(dim=-1).mean()
-
-    def _simsiam_loss(self, z_i, z_j):
-        """
-        Calculate the SimSiam loss between two augmented views.
-
-        z_i, z_j: encoder outputs for view 1 and view 2 (before predictor),
-                  shape (batch_size, hidden_size).
-
-        Returns a symmetrized negative-cosine-similarity loss using a
-        stop-gradient on one branch of each term, with no negative samples
-        required.
-        """
-        if not hasattr(self, 'simsiam_predictor'):
-            self._init_simsiam()
-            self.simsiam_predictor = self.simsiam_predictor.to(z_i.device)
-
-        p_i = self.simsiam_predictor(z_i)
-        p_j = self.simsiam_predictor(z_j)
-
-        loss = self._simsiam_negative_cosine_sim(p_i, z_j) / 2 \
-             + self._simsiam_negative_cosine_sim(p_j, z_i) / 2
-
-        return loss
 
     def get_cl_metrics(self):
         """Get the latest contrastive learning metrics"""

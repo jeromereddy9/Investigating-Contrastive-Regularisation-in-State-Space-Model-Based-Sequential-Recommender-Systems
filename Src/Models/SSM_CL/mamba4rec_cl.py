@@ -43,30 +43,40 @@ class Mamba4Rec_CL(CL_Logic,Mamba4Rec):
         seq_output1 = self.forward(aug_item_seq1, aug_len1)
         seq_output2 = self.forward(aug_item_seq2, aug_len2)
 
-        # Calculate InfoNCE loss
-        nce_logits, nce_labels = self._info_nce(
-            seq_output1, seq_output2,
-            temp=self.tau,
-            batch_size=item_seq_len.shape[0],
-            sim=self.sim
-        )
+        if self.cl_loss_type == 'info_nce':
+            # Calculate InfoNCE loss
+            nce_logits, nce_labels = self._info_nce(
+                seq_output1, seq_output2,
+                temp=self.tau,
+                batch_size=item_seq_len.shape[0],
+                sim=self.sim
+            )
+            cl_loss = self.cl_fct(nce_logits, nce_labels)
+        elif self.cl_loss_type == 'dcl':
+            # Calculate DCL loss
+            cl_loss = self._decoupled_contrastive_loss(
+                seq_output1, seq_output2,
+                temp=self.tau,
+                batch_size=item_seq_len.shape[0],
+                sim=self.sim
+            )
+        else:
+            cl_loss = torch.tensor(0.0, device=seq_output.device)
 
-        # Calculate alignment and uniformity for monitoring (optional)
+        # Calculate alignment and uniformity for monitoring
         with torch.no_grad():
             alignment, uniformity = self._decompose(
                 seq_output1, seq_output2, seq_output,
                 batch_size=item_seq_len.shape[0]
             )
 
-        nce_loss = self.nce_fct(nce_logits, nce_labels)
-
         # Combined loss
-        total_loss = main_loss + self.lmd * nce_loss
+        total_loss = main_loss + self.lmd * cl_loss
 
         self._last_cl_metrics = {
             'alignment': alignment.item(),
             'uniformity': uniformity.item(),
-            'nce_loss': nce_loss.item(),
+            f'{self.cl_loss_type}': cl_loss.item(),
             'main_loss': main_loss.item()
         }
 

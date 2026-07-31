@@ -6,3 +6,4 @@ d_state: 16
 d_conv: 4
 expand: 2
 loss_type: CE
+cl_loss_type: info_nce

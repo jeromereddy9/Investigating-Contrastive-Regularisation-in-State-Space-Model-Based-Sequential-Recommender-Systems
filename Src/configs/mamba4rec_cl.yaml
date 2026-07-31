@@ -9,3 +9,4 @@ lmd: 0.1
 tau: 0.2
 sim: dot
 loss_type: CE
+cl_loss_type: info_nce
