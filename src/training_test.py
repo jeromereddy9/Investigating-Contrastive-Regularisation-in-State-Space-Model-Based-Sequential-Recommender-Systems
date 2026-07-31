@@ -20,10 +20,10 @@ from src.models.SSM_CL.mamba4rec_cl import Mamba4Rec_CL
 from src.models.SSM_CL.SIGMA_cl import SIGMA_CL
 
 
-# Test config — smallest dataset and fewest epochs
-TEST_DATASET  = 'amazon_videogames'   # smallest dataset for speed
-TEST_EPOCHS   = 3                      # just enough to confirm forward/backward pass
-TEST_BATCH    = 64                     # small batch to avoid memory issues
+# Test config
+TEST_DATASET  = 'amazon_videogames'
+TEST_EPOCHS   = 3
+TEST_BATCH    = 64
 
 CONFIG_DIR        = path_builder('src/configs')
 DATASET_CONFIG    = path_builder(CONFIG_DIR + '/dataset.yaml')

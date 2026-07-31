@@ -23,9 +23,8 @@ from src.models.Baselines.gated_mamba import SIGMA
 from src.models.SSM_CL.mamba4rec_cl import Mamba4Rec_CL
 from src.models.SSM_CL.SIGMA_cl import SIGMA_CL
 
-# ─────────────────────────────────────────────
+
 # Experiment definitions
-# ─────────────────────────────────────────────
 DATASETS = [
     'amazon_toys_and_games',
     'amazon_videogames',
@@ -51,9 +50,8 @@ EXPERIMENTS = [
     (SIGMA_CL,     'SIGMA_CL',     'sigma_cl',      'BPR'),
 ]
 
-# ─────────────────────────────────────────────
+
 # Paths
-# ─────────────────────────────────────────────
 CONFIG_DIR        = path_builder('src/configs')
 DATASET_CONFIG    = path_builder(CONFIG_DIR + '/dataset.yaml')
 TRAINING_CONFIG   = path_builder(CONFIG_DIR + '/training.yaml')
@@ -65,9 +63,7 @@ CSV_PATH          = path_builder(OUTPUT_DIR + '/training_summary.csv')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
-# ─────────────────────────────────────────────
-# CSV logging — training summary only
-# ─────────────────────────────────────────────
+
 CSV_HEADERS = [
     'timestamp', 'dataset', 'model', 'loss_type', 'exp_id',
     'best_valid_score',       # best NDCG@10 on validation
@@ -88,9 +84,7 @@ def log_result(row: dict):
         writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
         writer.writerow(row)
 
-# ─────────────────────────────────────────────
-# Experiment ID
-# ─────────────────────────────────────────────
+
 def make_exp_id(model_name: str, loss_type: str | None, dataset: str) -> str:
     parts = [model_name]
     if loss_type:
@@ -98,9 +92,7 @@ def make_exp_id(model_name: str, loss_type: str | None, dataset: str) -> str:
     parts.append(dataset)
     return '_'.join(parts)
 
-# ─────────────────────────────────────────────
-# Callback trainer to capture per-epoch metrics
-# ─────────────────────────────────────────────
+
 class TrackingTrainer(Trainer):
     """
     Extends RecBole's Trainer to record per-epoch training loss
@@ -124,9 +116,6 @@ class TrackingTrainer(Trainer):
         return valid_result
 
 
-# ─────────────────────────────────────────────
-# Single experiment runner
-# ─────────────────────────────────────────────
 def run_experiment(
     model_class,
     model_name: str,
@@ -184,7 +173,7 @@ def run_experiment(
         model = model_class(config, dataset).to(config['device'])
         logger.info(model)
 
-        # Train — RecBole's trainer logs train_loss and valid_score per epoch
+        # Train RecBole's trainer logs train_loss and valid_score per epoch
         # internally in trainer.train_loss_dict and trainer.best_valid_score
         trainer = Trainer(config, model)
         best_valid_score, best_valid_result = trainer.fit(
@@ -212,7 +201,7 @@ def run_experiment(
         row['early_stopped']    = early_stopped
         row['status']           = 'success'
 
-        # Save checkpoint — model + convergence history
+        # Save checkpoint, model + convergence history
         ckpt_path = path_builder(CHECKPOINT_DIR + f'/{exp_id}.pkl')
         with open(ckpt_path, 'wb') as f:
             pickle.dump({
@@ -238,9 +227,7 @@ def run_experiment(
     log_result(row)
     return row
 
-# ─────────────────────────────────────────────
 # Main
-# ─────────────────────────────────────────────
 def main():
     init_csv()
     print(f"\nTraining run started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -252,9 +239,7 @@ def main():
     failed = []
 
     for dataset in DATASETS:
-        print(f"\n{'#'*60}")
         print(f"  Dataset: {dataset}")
-        print(f"{'#'*60}")
 
         for model_class, model_name, config_file, loss_type in EXPERIMENTS:
             result = run_experiment(
@@ -269,7 +254,6 @@ def main():
                 failed.append(result['exp_id'])
 
     # Summary
-    print(f"\n{'='*60}")
     print(f"  Training complete : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  Total             : {len(all_results)}")
     print(f"  Passed            : {sum(1 for r in all_results if r['status'] == 'success')}")
@@ -280,7 +264,6 @@ def main():
             print(f"    - {exp_id}")
     print(f"\n  Summary CSV  → {CSV_PATH}")
     print(f"  Checkpoints  → {CHECKPOINT_DIR}")
-    print(f"{'='*60}")
 
 if __name__ == '__main__':
     main()
