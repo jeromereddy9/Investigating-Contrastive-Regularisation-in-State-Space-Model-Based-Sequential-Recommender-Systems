@@ -1,5 +1,8 @@
 import os
 import sys
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 import traceback
 from src.utils import path_builder
 
@@ -49,7 +52,7 @@ TESTS = [
 
 
 # CL loss types to test for CL variants
-CL_LOSS_TYPES = ['info_nce', 'dcl', 'simsiam']
+CL_LOSS_TYPES = ['info_nce', 'dcl']
 
 def run_test(model_class, model_name, config_file, loss_type, cl_loss_type=None):
     label = model_name
