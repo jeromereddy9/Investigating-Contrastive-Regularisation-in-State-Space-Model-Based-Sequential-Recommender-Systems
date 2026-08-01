@@ -7,7 +7,7 @@ import traceback
 from src.utils import path_builder
 
 import torch
-from recbole.config import Config
+from recbole.config.configurator import Config
 from recbole.data import create_dataset, data_preparation
 from recbole.trainer import Trainer
 from recbole.utils import init_seed, init_logger
@@ -24,7 +24,7 @@ from src.models.SSM_CL.SIGMA_cl import SIGMA_CL
 
 
 # Test config
-TEST_DATASET  = 'amazon_videogames'
+TEST_DATASET  =  'amazon_videogames'
 TEST_EPOCHS   = 3
 TEST_BATCH    = 64
 
@@ -83,7 +83,7 @@ def run_test(model_class, model_name, config_file, loss_type, cl_loss_type=None)
             ],
             config_dict=config_dict,
         )
-        config['data_path'] = path_builder('src/datasets/preprocessed')
+        config['data_path'] = path_builder('src/datasets/preprocessed/amazon_videogames')
 
         init_seed(config['seed'], config['reproducibility'])
         init_logger(config)

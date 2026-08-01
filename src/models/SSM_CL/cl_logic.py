@@ -8,10 +8,10 @@ import torch.nn as nn
 class CL_Logic:
     def _init_CL(self, config):
         self._last_cl_metrics = None
-        self.lmd = config.get('lmd', 0.1)  # CL loss weight
-        self.tau = config.get('tau', 0.2)  # temperature
-        self.sim = config.get('sim', 'dot')  # similarity type
-        self.cl_loss_type = config.get('cl_loss_type', 'info_nce') # CL loss type
+        self.lmd = config['lmd'] if 'lmd' in config else 0.1
+        self.tau = config['tau'] if 'tau' in config else 0.2
+        self.sim = config['sim'] if 'sim' in config else 'dot'
+        self.cl_loss_type = config['cl_loss_type'] if 'cl_loss_type' in config else 'info_nce'
 
         # CL loss function
         self.cl_fct = torch.nn.CrossEntropyLoss()

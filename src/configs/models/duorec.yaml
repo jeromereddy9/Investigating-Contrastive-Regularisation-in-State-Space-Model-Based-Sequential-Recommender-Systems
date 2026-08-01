@@ -12,5 +12,5 @@ lmd: 0.1
 lmd_sem: 0.1
 tau: 0.2
 sim: dot
-contrast: us
+contrast: un
 loss_type: CE
