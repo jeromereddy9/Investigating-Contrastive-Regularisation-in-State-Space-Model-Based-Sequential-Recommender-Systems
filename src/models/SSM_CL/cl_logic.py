@@ -45,6 +45,9 @@ class CL_Logic:
 
     def _info_nce(self, z_i, z_j, temp, batch_size, sim='dot'):
         """Calculate InfoNCE loss"""
+        z_i = F.normalize(z_i, dim=-1)
+        z_j = F.normalize(z_j, dim=-1)
+
         N = 2 * batch_size
         z = torch.cat((z_i, z_j), dim=0)
 
@@ -75,6 +78,9 @@ class CL_Logic:
         Differs from InfoNCE by excluding the positive pair from the denominator,
         giving a cleaner gradient signal.
         """
+        z_i = F.normalize(z_i,dim=-1)
+        z_j = F.normalize(z_j,dim=-1)
+
         N = 2 * batch_size
         z = torch.cat((z_i, z_j), dim=0)
 
@@ -211,3 +217,11 @@ class CL_Logic:
         if hasattr(self, '_last_cl_metrics'):
             return self._last_cl_metrics
         return None
+
+    def full_sort_predict(self, interaction):
+        item_seq = interaction[self.ITEM_SEQ]
+        item_seq_len = interaction[self.ITEM_SEQ_LEN]
+        seq_output = self.forward(item_seq, item_seq_len)
+        test_item_emb = self.item_embedding.weight[:self.n_items]  # exclude mask token
+        scores = torch.matmul(seq_output, test_item_emb.transpose(0, 1))
+        return scores
