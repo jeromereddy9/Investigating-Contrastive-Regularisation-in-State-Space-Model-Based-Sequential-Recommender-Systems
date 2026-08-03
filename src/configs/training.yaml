@@ -5,8 +5,8 @@ eval_batch_size: 256
 learning_rate: 0.001
 stopping_step: 20          # early stopping patience
 clip_grad_norm:
-  max_norm: 5.0
-weight_decay: 0.0
+  max_norm: 1.0
+workers: 24
 
 # Evaluation
 eval_args:
