@@ -106,12 +106,10 @@ def run_test(model_class, model_name, config_file, loss_type, cl_loss_type=None)
         train_data, valid_data, test_data = data_preparation(config, dataset)
 
         model = model_class(config, dataset).to(config['device'])
-        print("=" * 50)
         print(f"Config device      : {config['device']}")
         print(f"Model device       : {next(model.parameters()).device}")
         print(f"CUDA available     : {torch.cuda.is_available()}")
         print(f"Current GPU        : {torch.cuda.get_device_name(0)}")
-        print("=" * 50)
         trainer = Trainer(config, model)
         trainer.fit(train_data, valid_data, saved=False, show_progress=False)
 
