@@ -30,7 +30,7 @@ from src.models.SSM_CL.SIGMA_cl import SIGMA_CL
 # Test config
 TEST_DATASET  =  'amazon_videogames'
 TEST_EPOCHS   = 3
-TEST_BATCH    = 64
+TEST_BATCH    = 256
 
 CONFIG_DIR        = path_builder('src/configs')
 DATASET_CONFIG    = path_builder(CONFIG_DIR + '/dataset.yaml')
@@ -95,8 +95,7 @@ def run_test(model_class, model_name, config_file, loss_type, cl_loss_type=None)
             ],
             config_dict=config_dict,
         )
-        print("RecBole device:", config["device"])
-        print("CUDA available:", torch.cuda.is_available())
+
         config['data_path'] = path_builder('src/datasets/preprocessed/amazon_videogames')
 
         init_seed(config['seed'], config['reproducibility'])
@@ -106,12 +105,8 @@ def run_test(model_class, model_name, config_file, loss_type, cl_loss_type=None)
         train_data, valid_data, test_data = data_preparation(config, dataset)
 
         model = model_class(config, dataset).to(config['device'])
-        print(f"Config device      : {config['device']}")
-        print(f"Model device       : {next(model.parameters()).device}")
-        print(f"CUDA available     : {torch.cuda.is_available()}")
-        print(f"Current GPU        : {torch.cuda.get_device_name(0)}")
         trainer = Trainer(config, model)
-        trainer.fit(train_data, valid_data, saved=False, show_progress=False)
+        trainer.fit(train_data, valid_data, saved=False, show_progress=True)
 
         print(f"  PASS  {label}")
         return True
