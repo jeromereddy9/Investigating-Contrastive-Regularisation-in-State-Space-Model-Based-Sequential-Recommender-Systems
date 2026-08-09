@@ -136,80 +136,213 @@ class CL_Logic:
 
     #Augmentation Methods
     def _augment(self, item_seq, item_seq_len):
-        """Generate two augmented views of the input sequence"""
-        aug_seq1 = []
-        aug_len1 = []
-        aug_seq2 = []
-        aug_len2 = []
+        """Generate two augmented views entirely on the GPU."""
 
-        for seq, length in zip(item_seq, item_seq_len):
-            if length > 1:
-                switch = random.sample(range(3), k=2)
-            else:
-                switch = [3, 3]
+        device = item_seq.device
+        batch_size = item_seq.size(0)
 
-            if switch[0] == 0:
-                aug_seq, aug_len = self._item_crop(seq, length)
-            elif switch[0] == 1:
-                aug_seq, aug_len = self._item_mask(seq, length)
-            elif switch[0] == 2:
-                aug_seq, aug_len = self._item_reorder(seq, length)
-            else:
-                aug_seq, aug_len = seq, length
+        # Each sequence gets two DIFFERENT augmentations.
+        # 0 = crop, 1 = mask, 2 = reorder
+        #
+        # Generate two random values and derive a pair without replacement.
+        rand = torch.rand(batch_size, 2, device=device)
 
-            aug_seq1.append(aug_seq)
-            aug_len1.append(aug_len)
+        first = torch.floor(rand[:, 0] * 3).long()
+        second = torch.floor(rand[:, 1] * 2).long()
 
-            if switch[1] == 0:
-                aug_seq, aug_len = self._item_crop(seq, length)
-            elif switch[1] == 1:
-                aug_seq, aug_len = self._item_mask(seq, length)
-            elif switch[1] == 2:
-                aug_seq, aug_len = self._item_reorder(seq, length)
-            else:
-                aug_seq, aug_len = seq, length
+        # Map second choice so it cannot equal first.
+        second = second + (second >= first).long()
 
-            aug_seq2.append(aug_seq)
-            aug_len2.append(aug_len)
+        # Sequences with length <= 1 receive no augmentation.
+        valid = item_seq_len > 1
 
-        return torch.stack(aug_seq1), torch.stack(aug_len1), torch.stack(aug_seq2), torch.stack(aug_len2)
+        first = torch.where(valid, first, torch.full_like(first, 3))
+        second = torch.where(valid, second, torch.full_like(second, 3))
+
+        # Start with unchanged copies.
+        aug_seq1 = item_seq.clone()
+        aug_seq2 = item_seq.clone()
+
+        aug_len1 = item_seq_len.clone()
+        aug_len2 = item_seq_len.clone()
+
+        # Apply each augmentation to the appropriate samples.
+        for op in range(3):
+
+            mask1 = first == op
+            mask2 = second == op
+
+            if mask1.any():
+                seq, length = self._apply_augmentation(
+                    item_seq[mask1],
+                    item_seq_len[mask1],
+                    op
+                )
+                aug_seq1[mask1] = seq
+                aug_len1[mask1] = length
+
+            if mask2.any():
+                seq, length = self._apply_augmentation(
+                    item_seq[mask2],
+                    item_seq_len[mask2],
+                    op
+                )
+                aug_seq2[mask2] = seq
+                aug_len2[mask2] = length
+
+        return aug_seq1, aug_len1, aug_seq2, aug_len2
+
+    def _apply_augmentation(self, item_seq, item_seq_len, operation):
+        """Apply one augmentation to a batch."""
+
+        if operation == 0:
+            return self._item_crop(item_seq, item_seq_len)
+
+        elif operation == 1:
+            return self._item_mask(item_seq, item_seq_len)
+
+        elif operation == 2:
+            return self._item_reorder(item_seq, item_seq_len)
+
+        return item_seq, item_seq_len
 
     def _item_crop(self, item_seq, item_seq_len, eta=0.6):
-        """Randomly crop a subsequence"""
-        num_left = math.floor(item_seq_len * eta)
-        if num_left == 0 or num_left >= item_seq_len:
-            return item_seq, item_seq_len
-        crop_begin = random.randint(0, item_seq_len - num_left)
-        cropped_item_seq = np.zeros(item_seq.shape[0], dtype=np.int64)
-        if crop_begin + num_left < item_seq.shape[0]:
-            cropped_item_seq[:num_left] = item_seq.cpu().detach().numpy()[crop_begin:crop_begin + num_left]
-        else:
-            cropped_item_seq[:num_left] = item_seq.cpu().detach().numpy()[crop_begin:]
-        return torch.tensor(cropped_item_seq, dtype=torch.long, device=item_seq.device), \
-            torch.tensor(num_left, dtype=torch.long, device=item_seq.device)
+        """Randomly crop each sequence in the batch."""
+
+        device = item_seq.device
+        batch_size, max_len = item_seq.shape
+
+        num_left = torch.floor(item_seq_len.float() * eta).long()
+
+        # Start with unchanged sequences.
+        cropped_seq = item_seq.clone()
+        cropped_len = item_seq_len.clone()
+
+        valid = (num_left > 0) & (num_left < item_seq_len)
+
+        if not valid.any():
+            return cropped_seq, cropped_len
+
+        # Random starting position for every sequence.
+        max_start = item_seq_len - num_left + 1
+
+        random_values = torch.rand(batch_size,device=device)
+
+        crop_begin = (random_values * max_start.float()).long()
+
+        # Position indices [batch, max_len]
+        positions = torch.arange( max_len,device=device).unsqueeze(0)
+
+        source_positions = crop_begin.unsqueeze(1) + positions
+
+        # Valid positions inside the cropped subsequence.
+        crop_mask = positions < num_left.unsqueeze(1)
+
+        # Prevent out-of-bounds indexing.
+        safe_positions = source_positions.clamp(max=max_len - 1)
+
+        gathered = torch.gather(item_seq,1,safe_positions)
+
+        cropped_seq = torch.where(valid.unsqueeze(1) & crop_mask,gathered,cropped_seq)
+
+        # Positions after the cropped sequence must be zero.
+        cropped_seq = torch.where(valid.unsqueeze(1) & (positions >= num_left.unsqueeze(1)),torch.zeros_like(cropped_seq),cropped_seq)
+
+        cropped_len = torch.where(valid,num_left,item_seq_len)
+
+        return cropped_seq, cropped_len
 
     def _item_mask(self, item_seq, item_seq_len, gamma=0.3):
-        """Randomly mask items"""
-        num_mask = math.floor(item_seq_len * gamma)
-        if num_mask == 0:
+        """Randomly mask items in each sequence."""
+
+        device = item_seq.device
+        batch_size, max_len = item_seq.shape
+
+        num_mask = torch.floor(item_seq_len.float() * gamma).long()
+
+        if not (num_mask > 0).any():
             return item_seq, item_seq_len
-        mask_index = random.sample(range(item_seq_len), k=num_mask)
-        masked_item_seq = item_seq.cpu().detach().numpy().copy()
-        # Use n_items as mask token (since embedding size is n_items+1)
-        masked_item_seq[mask_index] = self.n_items
-        return torch.tensor(masked_item_seq, dtype=torch.long, device=item_seq.device), item_seq_len
+
+        # Random scores for every position.
+        random_scores = torch.rand(batch_size,max_len,device=device)
+
+        # Positions outside the actual sequence receive infinity,
+        # ensuring they are never selected for masking.
+        positions = torch.arange(max_len,device=device).unsqueeze(0)
+
+        valid_positions = positions < item_seq_len.unsqueeze(1)
+
+        random_scores = random_scores.masked_fill(~valid_positions,float("inf"))
+
+        # Select the lowest random scores.
+        mask_indices = torch.argsort(random_scores,dim=1)
+
+        mask_positions = (torch.arange(max_len, device=device).unsqueeze(0)< num_mask.unsqueeze(1))
+
+        mask_indices = mask_indices.masked_fill(~mask_positions,0)
+
+        masked_seq = item_seq.clone()
+
+        # Build a [batch, max_len] boolean mask.
+        batch_indices = torch.arange(batch_size,device=device).unsqueeze(1)
+
+        mask = torch.zeros(batch_size,max_len,dtype=torch.bool,device=device)
+
+        mask.scatter_(1,mask_indices,mask_positions)
+
+        masked_seq = torch.where(mask,torch.tensor(self.n_items,dtype=item_seq.dtype,device=device),masked_seq)
+
+        return masked_seq, item_seq_len
 
     def _item_reorder(self, item_seq, item_seq_len, beta=0.6):
-        """Randomly reorder a subsequence"""
-        num_reorder = math.floor(item_seq_len * beta)
-        if num_reorder <= 1 or num_reorder >= item_seq_len:
+        """Randomly reorder a subsequence in each sequence."""
+
+        device = item_seq.device
+        batch_size, max_len = item_seq.shape
+
+        num_reorder = torch.floor(item_seq_len.float() * beta).long()
+
+        valid = ((num_reorder > 1) &(num_reorder < item_seq_len))
+
+        if not valid.any():
             return item_seq, item_seq_len
-        reorder_begin = random.randint(0, item_seq_len - num_reorder)
-        reordered_item_seq = item_seq.cpu().detach().numpy().copy()
-        shuffle_index = list(range(reorder_begin, reorder_begin + num_reorder))
-        random.shuffle(shuffle_index)
-        reordered_item_seq[reorder_begin:reorder_begin + num_reorder] = reordered_item_seq[shuffle_index]
-        return torch.tensor(reordered_item_seq, dtype=torch.long, device=item_seq.device), item_seq_len
+
+        # Random starting position.
+        max_start = item_seq_len - num_reorder + 1
+
+        random_values = torch.rand(batch_size,device=device)
+
+        reorder_begin = (random_values * max_start.float()).long()
+
+        positions = torch.arange(max_len,device=device).unsqueeze(0)
+
+        # Relative positions within the reorder window.
+        relative_positions = positions - reorder_begin.unsqueeze(1)
+
+        inside = (valid.unsqueeze(1) &(relative_positions >= 0) &(relative_positions < num_reorder.unsqueeze(1)))
+
+        # Random values used to generate a permutation.
+        random_order = torch.rand(batch_size,max_len,device=device)
+
+        random_order = random_order.masked_fill(~inside,float("inf"))
+
+        permutation = torch.argsort(random_order,dim=1)
+
+        # We need the source positions corresponding to each destination
+        # position inside the reorder window.
+        sorted_positions = permutation
+
+        reordered_seq = item_seq.clone()
+
+        batch_indices = torch.arange(batch_size,device=device).unsqueeze(1)
+
+        # Extract the randomly ordered values.
+        gathered = torch.gather(item_seq,1,sorted_positions)
+
+        # Only write back into the reorder region.
+        reordered_seq = torch.where(inside,gathered,reordered_seq)
+
+        return reordered_seq, item_seq_len
 
 
     def get_cl_metrics(self):
