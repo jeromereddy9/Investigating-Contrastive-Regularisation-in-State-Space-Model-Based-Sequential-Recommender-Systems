@@ -4,6 +4,10 @@ import csv
 import pickle
 import traceback
 from datetime import datetime
+import warnings
+import logging
+warnings.filterwarnings('ignore')
+logging.getLogger('recbole').setLevel(logging.ERROR)
 
 import torch
 from recbole.config import Config
