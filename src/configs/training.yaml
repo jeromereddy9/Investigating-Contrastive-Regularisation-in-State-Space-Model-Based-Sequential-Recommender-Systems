@@ -1,5 +1,5 @@
 # Training
-epochs: 100
+epochs: 150
 train_batch_size: 1024
 eval_batch_size: 512
 learning_rate: 0.001
