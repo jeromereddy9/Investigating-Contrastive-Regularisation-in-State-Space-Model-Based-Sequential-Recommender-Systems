@@ -202,7 +202,7 @@ def run_experiment(model_class, model_name, config_file,
         with open(ckpt_path, 'wb') as f:
             pickle.dump({
                 'model_state_dict':  trainer.model.state_dict(),
-                'config':            dict(config),
+                'config': {k: v for k, v in config.final_config_dict.items()},
                 'best_valid_score':  best_valid_score,
                 'best_valid_result': best_valid_result,
                 'best_epoch':        best_epoch,
@@ -239,7 +239,7 @@ def main():
     all_results, failed = [], []
 
     for dataset in DATASETS:
-        print(f"\n{'#'*60}\n  Dataset: {dataset}\n{'#'*60}")
+        print(f"\n  Dataset: {dataset}\n")
         for model_class, model_name, config_file, loss_type, cl_loss_type in EXPERIMENTS:
             result = run_experiment(
                 model_class=model_class,
@@ -254,7 +254,6 @@ def main():
                 failed.append(result['exp_id'])
 
     elapsed_total = (datetime.now() - run_start).total_seconds() / 3600
-    print(f"\n{'='*60}")
     print(f"  Stage {STAGE} complete : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  Total time : {elapsed_total:.1f} hours")
     print(f"  Total      : {len(all_results)}")
