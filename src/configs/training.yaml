@@ -1,7 +1,7 @@
 # Training
 epochs: 150
-train_batch_size: 1024
-eval_batch_size: 512
+train_batch_size: 2048
+eval_batch_size: 1024
 learning_rate: 0.001
 stopping_step: 30          # early stopping patience
 clip_grad_norm:
