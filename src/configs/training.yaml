@@ -1,12 +1,12 @@
 # Training
-epochs: 200
-train_batch_size: 256
-eval_batch_size: 256
+epochs: 100
+train_batch_size: 1024
+eval_batch_size: 512
 learning_rate: 0.001
-stopping_step: 20          # early stopping patience
+stopping_step: 30          # early stopping patience
 clip_grad_norm:
-  max_norm: 1.0
-workers: 24
+  max_norm: 5.0
+workers: 4
 
 # Evaluation
 eval_args:
