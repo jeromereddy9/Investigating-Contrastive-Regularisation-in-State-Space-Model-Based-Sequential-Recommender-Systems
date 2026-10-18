@@ -53,7 +53,7 @@ def extract_embeddings(model, n_items):
 # Config
 
 TEST_DATASET  = 'amazon_toys_and_games'
-TEST_EPOCHS   = 30
+TEST_EPOCHS   = 10
 TEST_BATCH    = 512
 
 CONFIG_DIR        = path_builder('src/configs')
