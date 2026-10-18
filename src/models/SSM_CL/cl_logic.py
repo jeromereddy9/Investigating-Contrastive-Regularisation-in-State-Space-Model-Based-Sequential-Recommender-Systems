@@ -18,6 +18,15 @@ class CL_Logic:
         self.batch_size = config['train_batch_size']
         self.mask_default = self._mask_correlated_samples(batch_size=self.batch_size)
 
+        # Projection Head for Model-Level CL
+        self.cl_projector = nn.Sequential(
+            nn.Linear(self.hidden_size, self.hidden_size),
+            nn.ReLU(),
+            nn.Linear(self.hidden_size, self.hidden_size),
+            nn.ReLU(),
+            nn.Linear(self.hidden_size, self.hidden_size // 2)
+        )
+
 
     def _init_embedding(self):
         current_size = self.item_embedding.num_embeddings
@@ -143,7 +152,6 @@ class CL_Logic:
 
         # Each sequence gets two DIFFERENT augmentations.
         # 0 = crop, 1 = mask, 2 = reorder
-        #
         # Generate two random values and derive a pair without replacement.
         rand = torch.rand(batch_size, 2, device=device)
 
